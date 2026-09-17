@@ -1,0 +1,59 @@
+name: Daily Podcast Pipeline
+
+on:
+  schedule:
+    # 11:00 UTC daily (~7am US Eastern / 4am Bend, noon Ireland/UK).
+    - cron: '0 11 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-podcast
+  cancel-in-progress: false
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install --omit=dev
+
+      - name: Run podcast pipeline
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_VOICE_ID_HOST_A: ${{ secrets.ELEVENLABS_VOICE_ID_HOST_A }}
+          ELEVENLABS_VOICE_ID_HOST_B: ${{ secrets.ELEVENLABS_VOICE_ID_HOST_B }}
+          PODCAST_SLUG: ${{ secrets.PODCAST_SLUG }}
+          PODCAST_BASE_URL: ${{ secrets.PODCAST_BASE_URL }}
+          PODCAST_TITLE: ${{ vars.PODCAST_TITLE }}
+          PODCAST_AUTHOR: ${{ vars.PODCAST_AUTHOR }}
+          PODCAST_EMAIL: ${{ vars.PODCAST_EMAIL }}
+          HOST_A_NAME: ${{ vars.HOST_A_NAME }}
+          HOST_B_NAME: ${{ vars.HOST_B_NAME }}
+          CLAUDE_MODEL: ${{ vars.CLAUDE_MODEL }}
+          ELEVENLABS_MODEL_ID: ${{ vars.ELEVENLABS_MODEL_ID }}
+          FOOTBALL_DATA_API_KEY: ${{ secrets.FOOTBALL_DATA_API_KEY }}
+        run: npm run run
+
+      - name: Commit and push generated episode
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/podcast data/episodes.json
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Publish daily podcast episode $(date -u +%F)"
+            git push
+          fi

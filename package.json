@@ -1,0 +1,13 @@
+{
+  "name": "daily-podcast-pipeline",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Fetches AI/Salesforce/sports/local-news headlines, scripts a two-host podcast with Claude, voices it with ElevenLabs, and publishes it to a private RSS feed.",
+  "type": "module",
+  "scripts": {
+    "run": "node src/run.js"
+  },
+  "dependencies": {
+    "rss-parser": "^3.13.0"
+  }
+}
